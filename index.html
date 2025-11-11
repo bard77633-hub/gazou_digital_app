@@ -145,6 +145,7 @@
     const infoPix = document.getElementById('infoPix');
     const infoQuant = document.getElementById('infoQuant');
     const infoBits = document.getElementById('infoBits');
+    const infoDPI = document.getElementById('infoDPI');
     const infoSize = document.getElementById('infoSize');
     const displaySize = document.getElementById('displaySize');
     const histCanvas = document.getElementById('histCanvas');
@@ -236,6 +237,7 @@
       if(!origImageData) return;
       const pixLevel = +pixRange.value; // 1..50 (1=original)
       const qLevels = +quantRange.value; // 2..256
+      infoDPI.textContent = Math.round(72 / pixLevel);
 
       // pixelation using an offscreen canvas scaled down
       const off = document.createElement('canvas');
@@ -314,6 +316,7 @@
     pixRange.addEventListener('input', ()=>{
       pixVal.textContent = pixRange.value;
       infoPix.textContent = pixRange.value;
+      infoDPI.textContent = Math.round(72/pixRange.value);
       redrawAll();
     });
 
