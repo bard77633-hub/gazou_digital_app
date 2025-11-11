@@ -31,9 +31,14 @@
 
   <div class="controls">
     <input type="file" id="imageLoader" accept="image/*"><br>
-    <label>標本化レベル: <input type="range" id="sampleSlider" min="1" max="50" value="1"></label>
-    <span id="sampleValue">1</span><br>
-    <label>量子化レベル: <input type="range" id="quantSlider" min="2" max="256" step="2" value="256"></label>
+    <label>標本化レベル:
+      <input type="range" id="sampleSlider" min="1" max="50" value="1">
+    </label>
+    <span id="sampleValue">1</span>
+    <span id="dpiValue">(約96dpi)</span><br>
+    <label>量子化レベル:
+      <input type="range" id="quantSlider" min="2" max="256" step="2" value="256">
+    </label>
     <span id="quantValue">256</span>
   </div>
 
@@ -56,6 +61,7 @@
     const quantSlider = document.getElementById('quantSlider');
     const sampleValue = document.getElementById('sampleValue');
     const quantValue = document.getElementById('quantValue');
+    const dpiValue = document.getElementById('dpiValue');
     const rgbInfo = document.getElementById('rgbInfo');
 
     const oCtx = originalCanvas.getContext('2d');
@@ -64,7 +70,7 @@
 
     let img = new Image();
     let currentImageData = null;
-    let clickPos = null; // クリックした位置を保持
+    let clickPos = null;
 
     imageLoader.addEventListener('change', handleImage, false);
     sampleSlider.addEventListener('input', updateProcessing);
@@ -74,7 +80,7 @@
       const rect = processedCanvas.getBoundingClientRect();
       const x = Math.floor(e.clientX - rect.left);
       const y = Math.floor(e.clientY - rect.top);
-      clickPos = { x, y }; // 位置を記録
+      clickPos = { x, y };
       updateRGBInfo();
     });
 
@@ -104,6 +110,10 @@
       const quantLevel = parseInt(quantSlider.value);
       sampleValue.textContent = sampleRate;
       quantValue.textContent = quantLevel;
+
+      // 概算dpi（参考値）
+      const dpi = Math.round(96 / sampleRate);
+      dpiValue.textContent = `(約${dpi}dpi)`;
 
       const w = processedCanvas.width;
       const h = processedCanvas.height;
@@ -158,7 +168,18 @@
     function updateRGBInfo() {
       if (!currentImageData || !clickPos) return;
       const { x, y } = clickPos;
-      const index = (y * currentImageData.width + x) * 4;
+      const sampleRate = parseInt(sampleSlider.value);
+      const adjustedX = Math.floor(x / sampleRate) * sampleRate;
+      const adjustedY = Math.floor(y / sampleRate) * sampleRate;
+
+      if (
+        adjustedX < 0 ||
+        adjustedY < 0 ||
+        adjustedX >= currentImageData.width ||
+        adjustedY >= currentImageData.height
+      ) return;
+
+      const index = (adjustedY * currentImageData.width + adjustedX) * 4;
       const data = currentImageData.data;
       const r = data[index];
       const g = data[index + 1];
