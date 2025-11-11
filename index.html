@@ -126,18 +126,6 @@ canvas{background:#222;border-radius:4px;display:block;max-width:100%}
   </div>
 </div>
 
-<!-- スライド比較表示 -->
-<div class="card" style="grid-column:1 / span 2; position:relative; margin-top:16px;">
-  <div class="small">スライド比較表示（Before / After）</div>
-  <div id="compareContainer" style="position:relative; width:100%; max-width:960px; margin:auto;">
-    <canvas id="compareOrig" width="480" height="360" style="width:100%; display:block;"></canvas>
-    <canvas id="compareProc" width="480" height="360"
-      style="position:absolute; top:0; left:0; width:50%; overflow:hidden; display:block;"></canvas>
-    <div id="sliderBar"
-      style="position:absolute; top:0; left:50%; width:4px; height:100%; background:#ff0; cursor:ew-resize; box-shadow:0 0 4px rgba(0,0,0,.6);"></div>
-  </div>
-</div>
-
 <div style="margin-top:12px" class="card muted-box">
   <strong>操作メモ：</strong>
   <ol>
@@ -176,15 +164,6 @@ const sample1 = document.getElementById('sample1');
 const sample2 = document.getElementById('sample2');
 const sample3 = document.getElementById('sample3');
 const downloadBtn = document.getElementById('download');
-const explainBtn = document.getElementById('explain');
-
-// スライド比較要素
-const compareOrig = document.getElementById('compareOrig');
-const compareProc = document.getElementById('compareProc');
-const ctxCompareOrig = compareOrig.getContext('2d');
-const ctxCompareProc = compareProc.getContext('2d');
-const sliderBar = document.getElementById('sliderBar');
-const compareContainer = document.getElementById('compareContainer');
 
 let image = new Image();
 let origImageData = null;
@@ -202,8 +181,6 @@ function setDisplaySize(s){
   displayW = +s; displayH = Math.round(s*3/4);
   canvasOrig.width = canvasProc.width = displayW;
   canvasOrig.height = canvasProc.height = displayH;
-  compareOrig.width = compareProc.width = displayW;
-  compareOrig.height = compareProc.height = displayH;
   infoSize.textContent = `${displayW} x ${displayH}`;
   redrawAll();
 }
@@ -216,8 +193,6 @@ function loadImageFromSrc(src){
     const w = displayW; const h = Math.round(w/ratio);
     canvasOrig.width = canvasProc.width = w;
     canvasOrig.height = canvasProc.height = h;
-    compareOrig.width = compareProc.width = w;
-    compareOrig.height = compareProc.height = h;
     ctxOrig.clearRect(0,0,w,h);
     ctxOrig.drawImage(img,0,0,w,h);
     origImageData = ctxOrig.getImageData(0,0,w,h);
@@ -268,7 +243,6 @@ function redrawAll(){
   }
   processImage();
   drawHistogram();
-  updateCompareView();
 }
 
 function drawHistogram(){
@@ -340,51 +314,4 @@ histToggle.addEventListener('click', ()=>{
 
 fileInput.addEventListener('change',(e)=>{
   if(e.target.files.length>0){
-    const url = URL.createObjectURL(e.target.files[0]);
-    loadImageFromSrc(url);
-  }
-});
-
-sample1.addEventListener('click',()=>loadImageFromSrc(sampleSVG1));
-sample2.addEventListener('click',()=>loadImageFromSrc(sampleSVG2));
-sample3.addEventListener('click',()=>loadImageFromSrc(sampleSVG3));
-
-resetBtn.addEventListener('click',()=>{pixRange.value=1;quantRange.value=256;displaySize.value=480;pixVal.textContent='1';quantVal.textContent='256';setDisplaySize(480);});
-
-downloadBtn.addEventListener('click',()=>{
-  const link = document.createElement('a');
-  link.href = canvasProc.toDataURL('image/png');
-  link.download = 'processed.png';
-  link.click();
-});
-
-// --- スライド比較ビュー ---
-function updateCompareView(){
-  if(!origImageData || !procImageData) return;
-  ctxCompareOrig.putImageData(origImageData, 0, 0);
-  ctxCompareProc.putImageData(procImageData, 0, 0);
-}
-let isDragging = false;
-compareContainer.addEventListener('mousedown', ()=>{isDragging=true;});
-window.addEventListener('mouseup', ()=>{isDragging=false;});
-window.addEventListener('mousemove', (e)=>{
-  if(!isDragging) return;
-  const rect = compareContainer.getBoundingClientRect();
-  const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
-  const percent = x / rect.width;
-  compareProc.style.width = `${percent*100}%`;
-  sliderBar.style.left = `${percent*100}%`;
-});
-
-redrawAll = (function(origFn){
-  return function(){
-    origFn();
-    updateCompareView();
-  };
-})(redrawAll);
-
-// 初期設定
-setDisplaySize(displaySize.value);
-</script>
-</body>
-</html>
+    const url
