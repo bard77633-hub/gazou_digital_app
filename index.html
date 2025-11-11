@@ -237,7 +237,7 @@
       if(!origImageData) return;
       const pixLevel = +pixRange.value; // 1..50 (1=original)
       const qLevels = +quantRange.value; // 2..256
-      infoDPI.textContent = Math.round(72 / pixLevel);
+      infoDPI.textContent = Math.round(72 * 1/ pixLevel);
 
       // pixelation using an offscreen canvas scaled down
       const off = document.createElement('canvas');
