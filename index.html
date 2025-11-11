@@ -2,189 +2,111 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>画像のデジタル化体験アプリ</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f5f5f5;
-      margin: 20px;
-    }
-    canvas {
-      border: 1px solid #ccc;
-      margin: 10px;
-    }
-    .controls {
-      margin-bottom: 10px;
-    }
-    .info {
-      margin-top: 10px;
-    }
-    #histogramCanvas {
-      display: block;
-      margin-top: 10px;
-      border: 1px solid #ccc;
-    }
-  </style>
+  <title>画像のデジタル化体験（比較表示）</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
 </head>
 <body>
-  <h1>画像のデジタル化体験アプリ</h1>
+  <h2>画像のデジタル化体験（標本化・量子化）</h2>
+  <p>画像をアップロードし、標本化（解像度）と量子化（階調数）を変えて画質の変化を比較してみよう。</p>
 
-  <div class="controls">
-    <input type="file" id="imageLoader" accept="image/*"><br>
-    <label>標本化レベル:
-      <input type="range" id="sampleSlider" min="1" max="50" value="1">
-    </label>
-    <span id="sampleValue">1</span>
-    <span id="dpiValue">(約96dpi)</span><br>
-    <label>量子化レベル:
-      <input type="range" id="quantSlider" min="2" max="256" step="2" value="256">
-    </label>
-    <span id="quantValue">256</span>
-  </div>
+  <input type="file" id="imageInput" accept="image/*" /><br /><br />
 
-  <div>
-    <canvas id="originalCanvas"></canvas>
-    <canvas id="processedCanvas"></canvas>
-  </div>
+  標本化（解像度）：
+  <input type="range" id="sampleSlider" min="10" max="300" value="150" step="10" />
+  <span id="sampleLabel">150 dpi</span><br />
 
-  <div class="info">
-    <p id="rgbInfo">クリックした点のRGB値: -</p>
-    <canvas id="histogramCanvas" width="512" height="150"></canvas>
-  </div>
+  量子化（階調数）：
+  <input type="range" id="quantSlider" min="2" max="256" value="128" step="2" />
+  <span id="quantLabel">128階調</span>
+
+  <div id="canvasContainer" style="margin-top: 10px; display: flex; gap: 20px;"></div>
 
   <script>
-    const imageLoader = document.getElementById('imageLoader');
-    const originalCanvas = document.getElementById('originalCanvas');
-    const processedCanvas = document.getElementById('processedCanvas');
-    const histogramCanvas = document.getElementById('histogramCanvas');
-    const sampleSlider = document.getElementById('sampleSlider');
-    const quantSlider = document.getElementById('quantSlider');
-    const sampleValue = document.getElementById('sampleValue');
-    const quantValue = document.getElementById('quantValue');
-    const dpiValue = document.getElementById('dpiValue');
-    const rgbInfo = document.getElementById('rgbInfo');
+    let img;
+    let sampleSlider, quantSlider;
+    let sampleLabel, quantLabel;
+    let baseWidth = 300;
+    let leftCanvas, rightCanvas;
 
-    const oCtx = originalCanvas.getContext('2d');
-    const pCtx = processedCanvas.getContext('2d');
-    const hCtx = histogramCanvas.getContext('2d');
-
-    let img = new Image();
-    let currentImageData = null;
-    let clickPos = null;
-
-    imageLoader.addEventListener('change', handleImage, false);
-    sampleSlider.addEventListener('input', updateProcessing);
-    quantSlider.addEventListener('input', updateProcessing);
-
-    processedCanvas.addEventListener('click', function (e) {
-      const rect = processedCanvas.getBoundingClientRect();
-      const x = Math.floor(e.clientX - rect.left);
-      const y = Math.floor(e.clientY - rect.top);
-      clickPos = { x, y };
-      updateRGBInfo();
-    });
-
-    function handleImage(e) {
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        img.onload = function () {
-          const maxWidth = 400;
-          const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-          const w = img.width * scale;
-          const h = img.height * scale;
-          originalCanvas.width = w;
-          originalCanvas.height = h;
-          processedCanvas.width = w;
-          processedCanvas.height = h;
-          oCtx.drawImage(img, 0, 0, w, h);
-          updateProcessing();
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(e.target.files[0]);
+    function preload() {
+      // 初期サンプル画像（著作権フリー）
+      img = loadImage("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/JPEG_example_flower.jpg/320px-JPEG_example_flower.jpg");
     }
 
-    function updateProcessing() {
-      if (!img.src) return;
-      const sampleRate = parseInt(sampleSlider.value);
-      const quantLevel = parseInt(quantSlider.value);
-      sampleValue.textContent = sampleRate;
-      quantValue.textContent = quantLevel;
+    function setup() {
+      leftCanvas = createCanvas(baseWidth * 2 + 20, baseWidth);
+      leftCanvas.parent("canvasContainer");
+      pixelDensity(1);
+      noLoop();
 
-      // 概算dpi（参考値）
-      const dpi = Math.round(96 / sampleRate);
-      dpiValue.textContent = `(約${dpi}dpi)`;
+      sampleSlider = document.getElementById("sampleSlider");
+      quantSlider = document.getElementById("quantSlider");
+      sampleLabel = document.getElementById("sampleLabel");
+      quantLabel = document.getElementById("quantLabel");
 
-      const w = processedCanvas.width;
-      const h = processedCanvas.height;
+      sampleSlider.addEventListener("input", updateImage);
+      quantSlider.addEventListener("input", updateImage);
 
-      // 標本化処理
-      const tempCanvas = document.createElement('canvas');
-      const tCtx = tempCanvas.getContext('2d');
-      tempCanvas.width = w / sampleRate;
-      tempCanvas.height = h / sampleRate;
-      tCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-      pCtx.imageSmoothingEnabled = false;
-      pCtx.drawImage(tempCanvas, 0, 0, w, h);
+      document.getElementById("imageInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          img = loadImage(URL.createObjectURL(file), () => {
+            redraw();
+          });
+        }
+      });
+    }
+
+    function updateImage() {
+      const dpi = sampleSlider.value;
+      const quant = quantSlider.value;
+      sampleLabel.textContent = `${dpi} dpi`;
+      quantLabel.textContent = `${quant}階調`;
+      redraw();
+    }
+
+    function draw() {
+      background(240);
+      if (!img) return;
+
+      const dpi = sampleSlider.value;
+      const quant = quantSlider.value;
+
+      // ==== 左側：原画像 ====
+      let aspect = img.height / img.width;
+      image(img, 0, 0, baseWidth, baseWidth * aspect);
+      textAlign(CENTER);
+      fill(0);
+      text("原画像", baseWidth / 2, baseWidth * aspect + 15);
+
+      // ==== 右側：標本化＋量子化後 ====
+      const scaleFactor = dpi / 300; // 300dpiを基準にした相対スケール
+      const w = int(baseWidth * scaleFactor);
+      const h = int(baseWidth * aspect * scaleFactor);
+
+      let processed = createImage(w, h);
+      processed.copy(img, 0, 0, img.width, img.height, 0, 0, w, h);
+      processed.loadPixels();
 
       // 量子化処理
-      const imageData = pCtx.getImageData(0, 0, w, h);
-      const data = imageData.data;
-      const step = 256 / quantLevel;
-
-      for (let i = 0; i < data.length; i += 4) {
-        data[i] = Math.floor(data[i] / step) * step;
-        data[i + 1] = Math.floor(data[i + 1] / step) * step;
-        data[i + 2] = Math.floor(data[i + 2] / step) * step;
+      for (let i = 0; i < processed.pixels.length; i += 4) {
+        processed.pixels[i] = quantize(processed.pixels[i], quant);
+        processed.pixels[i + 1] = quantize(processed.pixels[i + 1], quant);
+        processed.pixels[i + 2] = quantize(processed.pixels[i + 2], quant);
       }
+      processed.updatePixels();
 
-      pCtx.putImageData(imageData, 0, 0);
-      currentImageData = imageData;
-      drawHistogram(imageData);
-      updateRGBInfo(); // スライダー変更時もRGB更新
+      // 標本化による拡大再表示（モザイク効果）
+      noSmooth();
+      image(processed, baseWidth + 20, 0, baseWidth, baseWidth * aspect);
+      textAlign(CENTER);
+      fill(0);
+      text(`標本化: ${dpi}dpi / 量子化: ${quant}階調`, baseWidth * 1.5 + 10, baseWidth * aspect + 15);
     }
 
-    function drawHistogram(imageData) {
-      const bins = new Array(256).fill(0);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const brightness = Math.round((data[i] + data[i + 1] + data[i + 2]) / 3);
-        bins[brightness]++;
-      }
-
-      const maxVal = Math.max(...bins);
-      hCtx.clearRect(0, 0, histogramCanvas.width, histogramCanvas.height);
-      hCtx.beginPath();
-      for (let i = 0; i < 256; i++) {
-        const x = i * 2;
-        const y = histogramCanvas.height - (bins[i] / maxVal) * histogramCanvas.height;
-        hCtx.moveTo(x, histogramCanvas.height);
-        hCtx.lineTo(x, y);
-      }
-      hCtx.strokeStyle = 'rgb(100,100,200)';
-      hCtx.stroke();
-    }
-
-    function updateRGBInfo() {
-      if (!currentImageData || !clickPos) return;
-      const { x, y } = clickPos;
-      const sampleRate = parseInt(sampleSlider.value);
-      const adjustedX = Math.floor(x / sampleRate) * sampleRate;
-      const adjustedY = Math.floor(y / sampleRate) * sampleRate;
-
-      if (
-        adjustedX < 0 ||
-        adjustedY < 0 ||
-        adjustedX >= currentImageData.width ||
-        adjustedY >= currentImageData.height
-      ) return;
-
-      const index = (adjustedY * currentImageData.width + adjustedX) * 4;
-      const data = currentImageData.data;
-      const r = data[index];
-      const g = data[index + 1];
-      const b = data[index + 2];
-      rgbInfo.textContent = `クリックした点のRGB値: R=${r}, G=${g}, B=${b}`;
+    function quantize(value, levels) {
+      const step = 255 / (levels - 1);
+      return Math.round(value / step) * step;
     }
   </script>
 </body>
