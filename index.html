@@ -98,7 +98,7 @@ canvas{background:#222;border-radius:4px;display:block;max-width:100%}
       <div style="width:48%">
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
           <button id="histToggle" class="btn" style="padding:6px 8px">Before</button>
-          <button id="explain" style="padding:6px 8px">説明表示</button>
+          <button id="explain" class="btn" style="padding:6px 8px">説明表示</button>
         </div>
         <canvas id="histCanvas" class="hist" width="600" height="120"></canvas>
       </div>
@@ -126,13 +126,9 @@ canvas{background:#222;border-radius:4px;display:block;max-width:100%}
   </div>
 </div>
 
-<div style="margin-top:12px" class="card muted-box">
-  <strong>操作メモ：</strong>
-  <ol>
-    <li>左上で画像を読み込むかサンプルを選ぶ。</li>
-    <li>スライダーで標本化（モザイク）と量子化（色の段階）を調整。</li>
-    <li>処理後画像をクリックすると、その点の値とヒストグラムが見られます。</li>
-  </ol>
+<div style="margin-top:12px" class="card muted-box" id="explainBox" hidden>
+  <strong>説明：</strong>
+  <p>このアプリでは、画像を標本化（ピクセル化）し、色を量子化してデジタル画像処理を体験できます。標本化レベルを上げるとモザイク状になり、量子化段階を下げると色数が減ります。クリックした点のRGB値も確認できます。</p>
 </div>
 
 <script>
@@ -164,6 +160,8 @@ const sample1 = document.getElementById('sample1');
 const sample2 = document.getElementById('sample2');
 const sample3 = document.getElementById('sample3');
 const downloadBtn = document.getElementById('download');
+const explainBtn = document.getElementById('explain');
+const explainBox = document.getElementById('explainBox');
 
 let image = new Image();
 let origImageData = null;
@@ -172,7 +170,7 @@ let currentHistMode = 'before';
 let showMarker = true;
 let displayW = 480, displayH = 360;
 
-// サンプルSVG
+// サンプル画像
 const sampleSVG1 = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="#87ceeb"/><circle cx="600" cy="120" r="60" fill="#fff59d"/><rect x="0" y="420" width="800" height="180" fill="#2e8b57"/><g fill="#fff"><text x="40" y="80" font-size="36">風景サンプル</text></g></svg>`);
 const sampleSVG2 = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="#f4f4f8"/><g transform="translate(120,60)"><circle cx="120" cy="120" r="100" fill="#f8c3c3"/><rect x="60" y="240" width="120" height="200" fill="#8fb3ff"/></g><text x="40" y="40" font-size="32">人物サンプル</text></svg>`);
 const sampleSVG3 = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="#fff4e6"/><g><rect x="40" y="40" width="220" height="220" fill="#ff6b6b"/><circle cx="420" cy="150" r="110" fill="#ffd43b"/><polygon points="620,40 720,200 520,200" fill="#6be6b5"/></g><text x="40" y="320" font-size="28">イラストサンプル</text></svg>`);
@@ -211,8 +209,7 @@ function processImage(){
   if(!origImageData) return;
   const pixLevel = +pixRange.value;
   const qLevels = +quantRange.value;
-
-  infoDPI.textContent = Math.round(72 * 1/pixLevel);
+  infoDPI.textContent = Math.round(72 / pixLevel);
 
   const off = document.createElement('canvas');
   const ow = Math.max(1, Math.floor(canvasOrig.width/pixLevel));
@@ -306,12 +303,4 @@ toggleMarkerBtn.addEventListener('click', ()=>{
   marker.style.display = showMarker ? 'block':'none';
 });
 
-histToggle.addEventListener('click', ()=>{
-  currentHistMode = (currentHistMode==='before')?'after':'before';
-  histToggle.textContent = currentHistMode==='before'?'Before':'After';
-  drawHistogram();
-});
-
-fileInput.addEventListener('change',(e)=>{
-  if(e.target.files.length>0){
-    const url
+histToggle.add
