@@ -86,9 +86,9 @@
       <div class="bottom">
         <div style="flex:1">
           <div class="muted-box info">
-          <div>標本化レベル: <span id="infoPix">1</span> （≈ <span id="infoDPI">72</span> dpi）</div>
-          <div>量子化段階: <span id="infoQuant">256</span> （≈ <span id="infoBits">8</span> bit）</div>
-          <div>画像サイズ: <span id="infoSize">-</span></div>
+            <div>標本化レベル: <span id="infoPix">1</span></div>
+            <div>量子化段階: <span id="infoQuant">256</span> （≈ <span id="infoBits">8</span> bit）</div>
+            <div>画像サイズ: <span id="infoSize">-</span></div>
           </div>
         </div>
         <div style="width:48%">
@@ -145,7 +145,6 @@
     const infoPix = document.getElementById('infoPix');
     const infoQuant = document.getElementById('infoQuant');
     const infoBits = document.getElementById('infoBits');
-    const infoDPI = document.getElementById('infoDPI');
     const infoSize = document.getElementById('infoSize');
     const displaySize = document.getElementById('displaySize');
     const histCanvas = document.getElementById('histCanvas');
@@ -237,7 +236,6 @@
       if(!origImageData) return;
       const pixLevel = +pixRange.value; // 1..50 (1=original)
       const qLevels = +quantRange.value; // 2..256
-      infoDPI.textContent = Math.round(72 * 1/ pixLevel);
 
       // pixelation using an offscreen canvas scaled down
       const off = document.createElement('canvas');
@@ -316,7 +314,6 @@
     pixRange.addEventListener('input', ()=>{
       pixVal.textContent = pixRange.value;
       infoPix.textContent = pixRange.value;
-      infoDPI.textContent = Math.round(72/pixRange.value);
       redrawAll();
     });
 
